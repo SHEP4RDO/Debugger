@@ -58,7 +58,8 @@ func SetByConfigProvider(provider ConfigProvider, moduleName string, submodules 
 		if logFilePath := provider.LogFilePath(); logFilePath == "" {
 			debugger.SetDefaultLogPath()
 		} else {
-			debugger.SetLogFile(true, logFilePath, provider.LogFileName())
+			debugger.SetLogPath(logFilePath)
+			debugger.SetLogFileName(provider.LogFileName())
 		}
 		if logFileType := provider.LogFileType(); logFileType != "" {
 			debugger.SetLogFileType(logFileType)
@@ -168,7 +169,8 @@ func SetByConfig(path, fileName, moduleName string, submodules ...string) (*Debu
 		if conf.LogFilePath == "" {
 			debugger.SetDefaultLogPath()
 		} else {
-			debugger.SetLogFile(true, conf.LogFilePath, conf.LogFileName)
+			debugger.SetLogPath(conf.LogFilePath)
+			debugger.SetLogFileName(conf.LogFileName)
 		}
 		if conf.LogFileType != "" {
 			debugger.SetLogFileType(conf.LogFileType)

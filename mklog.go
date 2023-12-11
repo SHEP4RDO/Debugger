@@ -65,9 +65,14 @@ func NewDebugLogger(moduleName string, submodules ...string) *Debugger {
 	signal.Notify(p.signalChannel, os.Interrupt) // Notify the debugger about OS interrupt signals.
 	p.log.isToFile = false                       // Log to file is initially disabled.
 	p.log.DateFileFormat = "02.01.2006"          // Default log file date format.
-
+	p.isConsoleOutput = true
+	p.log.FileName = "log_file"
+	p.log.FilePath = "logs"
+	p.log.FileType = ".log"
 	return p
 }
+
+// OPTIONS
 
 // SetDebugMode enables or disables debug mode for the Debugger instance.
 func (d *Debugger) SetDebugMode(mode bool) *Debugger {
@@ -94,20 +99,36 @@ func (d *Debugger) SetLogDateFormat(format string) *Debugger {
 	return d
 }
 
-// SetLogFile enables or disables logging to a file and sets the file path and name.
-func (d *Debugger) SetLogFile(isLog bool, filePath, fileName string) *Debugger {
-	d.log.isToFile = isLog
-	if d.log.isToFile {
-		d.log.FilePath = filePath
-		d.log.FileName = fileName
-		d.log.CurrentFileName = fileName
-	}
+// SetConsoleOutput enables or disables console output for log messages.
+func (d *Debugger) SetConsoleOutput(mode bool) *Debugger {
+	d.isConsoleOutput = mode
 	return d
 }
 
-// SetDefaultLogPath sets the default log file path.
-func (d *Debugger) SetDefaultLogPath() *Debugger {
-	d.log.FilePath = "logs"
+// SetDetailedErrorOutput enables or disables detailed error output.
+func (d *Debugger) SetDetailedErrorOutput(enabled bool) *Debugger {
+	d.detailedErrorOutput = enabled
+	return d
+}
+
+// GetSignalChannel returns the signal channel used for interrupt signals.
+func (d *Debugger) GetSignalChannel() chan os.Signal {
+	return d.signalChannel
+}
+
+// LOG FILES
+
+// SetLogFile enables or disables logging to a file and sets the file path and name.
+func (d *Debugger) SetIsLogFile(isLog bool) *Debugger {
+	d.log.isToFile = isLog
+	return d
+}
+func (d *Debugger) SetLogFileName(filename string) *Debugger {
+	d.log.FileName = filename
+	return d
+}
+func (d *Debugger) SetLogPath(filename string) *Debugger {
+	d.log.FilePath = filename
 	return d
 }
 
@@ -127,22 +148,12 @@ func (d *Debugger) SetLogDateFileNameFormat(_type string) *Debugger {
 	return d
 }
 
-// SetConsoleOutput enables or disables console output for log messages.
-func (d *Debugger) SetConsoleOutput(mode bool) *Debugger {
-	d.isConsoleOutput = mode
+func (d *Debugger) SetDefaultLogPath() *Debugger {
+	d.log.FilePath = "logs"
 	return d
 }
 
-// SetDetailedErrorOutput enables or disables detailed error output.
-func (d *Debugger) SetDetailedErrorOutput(enabled bool) *Debugger {
-	d.detailedErrorOutput = enabled
-	return d
-}
-
-// GetSignalChannel returns the signal channel used for interrupt signals.
-func (d *Debugger) GetSignalChannel() chan os.Signal {
-	return d.signalChannel
-}
+//FORMATTERS
 
 // SetLogFormatter sets the log formatter for the Debugger instance.
 func (d *Debugger) SetLogFormatter(formatter LogFormatter) *Debugger {

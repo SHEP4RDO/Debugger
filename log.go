@@ -26,9 +26,9 @@ func (d *Debugger) createLogFile() error {
 			return fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		fileName := filepath.Join(d.log.FilePath, d.log.FileName)
+		fileName := filepath.Join(d.log.FilePath, d.log.FileName+d.log.FileType)
 		if d.log.isDateFile {
-			fileName = filepath.Join(d.log.FilePath, time.Now().Format(d.log.DateFileFormat)+"_"+d.log.FileName+d.log.FileType)
+			fileName = filepath.Join(d.log.FilePath, time.Now().Format(d.log.DateFileFormat)+"_"+d.log.FileName)
 		}
 
 		file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
