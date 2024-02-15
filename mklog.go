@@ -83,7 +83,6 @@ func (d *Debugger) SetDebugMode(mode bool) *Debugger {
 // SetDateFormat sets the date format for log messages.
 func (d *Debugger) SetDateFormat(format string) *Debugger {
 	d.dateFormat = format
-	d.logFormatter.SetLogDateFormat(format)
 	return d
 }
 
@@ -162,8 +161,8 @@ func (d *Debugger) SetLogFormatter(formatter LogFormatter) *Debugger {
 }
 
 // SetUserDefinedFormatter sets a user-defined log formatter function and date format.
-func (d *Debugger) SetUserDefinedFormatter(formatFunc UserDefinedFormatterFunc, dateFormat string) *Debugger {
-	d.logFormatter = UserDefinedFormatter{formatFunc, dateFormat}
+func (d *Debugger) SetUserDefinedFormatter(formatFunc UserDefinedFormatterFunc) *Debugger {
+	d.logFormatter = UserDefinedFormatter{formatFunc}
 	return d
 }
 

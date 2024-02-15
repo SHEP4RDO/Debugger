@@ -35,7 +35,7 @@ func (d *Debugger) printLogCustom(logLevel LogLevel, msg string, err error) {
 		logLevelName,
 		d.moduleName,
 		d.submodules,
-		time.Now(),
+		time.Now().Format(d.dateFormat),
 	))
 }
 
@@ -51,7 +51,7 @@ func (d *Debugger) printCustomLogToFile(logLevel LogLevel, msg string, err error
 		}
 
 		logMessage := d.formatLog(msg, err)
-		toPrint := d.logFormatter.Format(logMessage, logLevelName, d.moduleName, d.submodules, time.Now())
+		toPrint := d.logFormatter.Format(logMessage, logLevelName, d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
 		return d.log.writeLog(toPrint)
 	}
 	return nil
@@ -109,7 +109,8 @@ func (d *Debugger) Fatal(msg string, err error) {
 func (d *Debugger) printLog(logLevel LogLevel, msg string, err error) {
 	d.logLevel = logLevel
 	logMessage := d.formatLog(msg, err)
-	fmt.Print(d.logFormatter.Format(logMessage, logLevelNames[logLevel], d.moduleName, d.submodules, time.Now()))
+	fmt.Print(d.logFormatter.Format(logMessage, logLevelNames[logLevel], d.moduleName, d.submodules, time.Now().Format(d.dateFormat)))
+
 }
 
 // printLogToFile writes the log message to the log file if logging to a file is enabled.
@@ -117,7 +118,7 @@ func (d *Debugger) printLog(logLevel LogLevel, msg string, err error) {
 func (d *Debugger) printLogToFile(msg string, err error) error {
 	if d.log.isToFile {
 		logMessage := d.formatLog(msg, err)
-		toPrint := d.logFormatter.Format(logMessage, logLevelNames[d.logLevel], d.moduleName, d.submodules, time.Now())
+		toPrint := d.logFormatter.Format(logMessage, logLevelNames[d.logLevel], d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
 		return d.log.writeLog(toPrint)
 	}
 	return nil

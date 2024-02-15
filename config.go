@@ -96,7 +96,6 @@ func setFormatterProvider(debugger *Debugger, dateFormat, format, userFormat str
 							timestamp, logLevel, moduleName, submodules, logMessage,
 						)
 					},
-					dateFormat: dateFormat,
 				}
 				return nil
 			} else {
@@ -259,7 +258,6 @@ func (conf *Config) setFormatter(debugger *Debugger) error {
 						timestamp, logLevel, moduleName, submodules, logMessage,
 					)
 				},
-				dateFormat: conf.DateFormat,
 			}
 			return nil
 		} else {

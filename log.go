@@ -27,6 +27,9 @@ func (d *Debugger) createLogFile() error {
 		}
 
 		fileName := filepath.Join(d.log.FilePath, d.log.FileName+d.log.FileType)
+		fmt.Printf("log format: %v\n", d.log.DateFileFormat)
+		fmt.Printf("isDateFile : %v\n", d.log.isDateFile)
+
 		if d.log.isDateFile {
 			fileName = filepath.Join(d.log.FilePath, time.Now().Format(d.log.DateFileFormat)+"_"+d.log.FileName)
 		}
