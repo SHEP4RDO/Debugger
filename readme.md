@@ -39,3 +39,7 @@ The module allows you to:
 - -  **Set Storage Path for Files:** Set the default path for log files, either using the default or explicitly specifying a path.
     
 -  - **Set Log File Type:** Specify the file type (extension) for logs.
+
+## Usage
+
+Instructions on how to use the `mklog` module can be found in the corresponding [wiki](https://github.com/SHEP4RDO/mklog/wiki) of the project.
