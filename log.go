@@ -26,9 +26,11 @@ func (d *Debugger) createLogFile() error {
 			return fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		fileName := filepath.Join(d.log.FilePath, d.log.FileName+d.log.FileType)
+		var fileName string
 		if d.log.isDateFile {
-			fileName = filepath.Join(d.log.FilePath, time.Now().Format(d.log.DateFileFormat)+"_"+d.log.FileName)
+			fileName = filepath.Join(d.log.FilePath, time.Now().Format(d.log.DateFileFormat)+"_"+d.log.FileName+d.log.FileType)
+		} else {
+			fileName = filepath.Join(d.log.FilePath, d.log.FileName+d.log.FileType)
 		}
 
 		file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -38,15 +40,6 @@ func (d *Debugger) createLogFile() error {
 		d.log.File = file
 		d.log.CurrentFileName = fileName
 	}
-
-	go func() {
-		select {
-		case <-d.signalChannel:
-			d.closeLogFile()
-		case <-d.logFinishChannel:
-		}
-	}()
-
 	return nil
 }
 
@@ -60,9 +53,18 @@ func (d *Debugger) closeLogFile() {
 }
 
 // writeLog writes the provided log message to the log file if logging to a file is enabled.
-func (l *log) writeLog(msg string) error {
-	if l.File != nil {
-		_, err := l.File.WriteString(msg)
+func (d *Debugger) writeLog(msg string) error {
+	if d.log.File != nil {
+		// Check if the date has changed, and if so, create a new log file.
+		now := time.Now()
+		fileDate := now.Format(d.log.DateFileFormat)
+		if d.log.isDateFile && fileDate != d.log.CurrentFileName {
+			d.log.CurrentFileName = fileDate
+			if err := d.createLogFile(); err != nil {
+				return err
+			}
+		}
+		_, err := d.log.File.WriteString(msg)
 		return err
 	}
 	return fmt.Errorf("log file is not open")

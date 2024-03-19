@@ -52,7 +52,7 @@ func (d *Debugger) printCustomLogToFile(logLevel LogLevel, msg string, err error
 
 		logMessage := d.formatLog(msg, err)
 		toPrint := d.logFormatter.Format(logMessage, logLevelName, d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
-		return d.log.writeLog(toPrint)
+		return d.writeLog(toPrint)
 	}
 	return nil
 }
@@ -119,7 +119,7 @@ func (d *Debugger) printLogToFile(msg string, err error) error {
 	if d.log.isToFile {
 		logMessage := d.formatLog(msg, err)
 		toPrint := d.logFormatter.Format(logMessage, logLevelNames[d.logLevel], d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
-		return d.log.writeLog(toPrint)
+		return d.writeLog(toPrint)
 	}
 	return nil
 }
