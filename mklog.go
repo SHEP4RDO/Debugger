@@ -80,6 +80,11 @@ func (d *Debugger) SetDebugMode(mode bool) *Debugger {
 	return d
 }
 
+func (d *Debugger) SetDebugLevel(level LogLevel) *Debugger {
+	d.logLevel = level
+	return d
+}
+
 // SetDateFormat sets the date format for log messages.
 func (d *Debugger) SetDateFormat(format string) *Debugger {
 	d.dateFormat = format
