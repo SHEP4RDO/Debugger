@@ -70,7 +70,7 @@ func (d *Debugger) Debug(msg string, args ...interface{}) {
 // It prints the log message to the console and, if enabled, to the log file.
 // Trace logs are only printed if the debug mode is enabled, and the log level is set to Trace.
 func (d *Debugger) Trace(msg string, args ...interface{}) {
-	if d.debugMode && d.logLevel == TraceLevel {
+	if d.debugMode && d.debugModeStatus == TraceLevel {
 		d.printLog(TraceLevel, msg, args...)
 		d.printLogToFile(msg, args...)
 	}

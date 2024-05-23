@@ -35,7 +35,8 @@ type Debugger struct {
 	submodules          []string            // Submodules associated with the module.
 	customLogLevelNames map[LogLevel]string // Custom log level names provided by the user.
 	debugMode           bool                // Indicates whether debug mode is enabled.
-	dateFormat          string              // Format for log timestamps.
+	debugModeStatus     LogLevel
+	dateFormat          string // Format for log timestamps.
 
 	isConsoleOutput     bool           // Indicates whether console output is enabled.
 	detailedErrorOutput bool           // Indicates whether detailed error output is enabled.
@@ -83,7 +84,7 @@ func (d *Debugger) SetDebugMode(mode bool) *Debugger {
 }
 
 func (d *Debugger) SetDebugLevel(level LogLevel) *Debugger {
-	d.logLevel = level
+	d.debugModeStatus = level
 	return d
 }
 
