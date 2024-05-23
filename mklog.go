@@ -1,8 +1,10 @@
 package mklog
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 )
 
 // LogLevel represents the severity levels of log messages.
@@ -175,4 +177,25 @@ func (d *Debugger) SetUserDefinedFormatter(formatFunc UserDefinedFormatterFunc) 
 func (d *Debugger) SetCustomLogLevelNames(customLogLevelNames map[LogLevel]string) *Debugger {
 	d.customLogLevelNames = customLogLevelNames
 	return d
+}
+
+// StringToLogLevel maps a string to a LogLevel.
+func StringToLogLevel(level string) (LogLevel, error) {
+	level = strings.ToLower(level)
+	switch level {
+	case "debug":
+		return DebugLevel, nil
+	case "info":
+		return InfoLevel, nil
+	case "warning":
+		return WarningLevel, nil
+	case "error":
+		return ErrorLevel, nil
+	case "fatal":
+		return FatalLevel, nil
+	case "trace":
+		return TraceLevel, nil
+	default:
+		return 0, fmt.Errorf("invalid log level: %s", level)
+	}
 }
