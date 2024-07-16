@@ -5,6 +5,27 @@ import (
 	"time"
 )
 
+func (d Debugger) Logf(level LogLevel, format string, args ...interface{}) {
+	switch level {
+	case DebugLevel:
+		d.printLog(level, format, args...)
+		d.printLogToFile(format, args...)
+	case InfoLevel:
+		d.printLog(level, format, args...)
+		d.printLogToFile(format, args...)
+	case WarningLevel:
+		d.printLog(level, format, args...)
+		d.printLogToFile(format, args...)
+	case ErrorLevel:
+		d.printLog(level, format, args...)
+		d.printLogToFile(format, args...)
+	default:
+		// По умолчанию выводим как Info
+		d.printLog(level, format, args...)
+		d.printLogToFile(format, args...)
+	}
+}
+
 // CustomDebug outputs a custom log message if debug mode.
 // It includes the specified message and error and respects the custom log level names.
 func (d *Debugger) CustomDebug(logLevel LogLevel, msg string, args ...interface{}) {
