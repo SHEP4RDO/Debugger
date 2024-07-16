@@ -5,23 +5,28 @@ import (
 	"time"
 )
 
-func (d Debugger) Logf(level LogLevel, format string, args ...interface{}) {
+func (d Debugger) Logf(level int, format string, args ...interface{}) {
 	switch level {
-	case DebugLevel:
-		d.printLog(level, format, args...)
+	case 0:
+		d.printLog(DebugLevel, format, args...)
 		d.printLogToFile(format, args...)
-	case InfoLevel:
-		d.printLog(level, format, args...)
+	case 1:
+		d.printLog(InfoLevel, format, args...)
 		d.printLogToFile(format, args...)
-	case WarningLevel:
-		d.printLog(level, format, args...)
+	case 2:
+		d.printLog(WarningLevel, format, args...)
 		d.printLogToFile(format, args...)
-	case ErrorLevel:
-		d.printLog(level, format, args...)
+	case 3:
+		d.printLog(ErrorLevel, format, args...)
+		d.printLogToFile(format, args...)
+	case 4:
+		d.printLog(FatalLevel, format, args...)
+		d.printLogToFile(format, args...)
+	case 5:
+		d.printLog(TraceLevel, format, args...)
 		d.printLogToFile(format, args...)
 	default:
-		// По умолчанию выводим как Info
-		d.printLog(level, format, args...)
+		d.printLog(InfoLevel, format, args...)
 		d.printLogToFile(format, args...)
 	}
 }
