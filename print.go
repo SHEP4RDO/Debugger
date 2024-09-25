@@ -5,203 +5,258 @@ import (
 	"time"
 )
 
-func (d Debugger) Logf(level int, format string, args ...interface{}) {
-	switch level {
-	case 0:
-		d.printLog(DebugLevel, format, args...)
-		d.printLogToFile(format, args...)
-	case 1:
-		d.printLog(InfoLevel, format, args...)
-		d.printLogToFile(format, args...)
-	case 2:
-		d.printLog(WarningLevel, format, args...)
-		d.printLogToFile(format, args...)
-	case 3:
-		d.printLog(ErrorLevel, format, args...)
-		d.printLogToFile(format, args...)
-	case 4:
-		d.printLog(FatalLevel, format, args...)
-		d.printLogToFile(format, args...)
-	case 5:
-		d.printLog(TraceLevel, format, args...)
-		d.printLogToFile(format, args...)
-	default:
-		d.printLog(InfoLevel, format, args...)
-		d.printLogToFile(format, args...)
-	}
-}
-
-// CustomDebug outputs a custom log message if debug mode.
-// It includes the specified message and error and respects the custom log level names.
-func (d *Debugger) CustomDebug(logLevel LogLevel, msg string, args ...interface{}) {
-	if d.debugMode {
-		d.printLogCustom(logLevel, msg, args...)
-		d.printCustomLogToFile(logLevel, msg, args...)
-	}
-}
-
-// Custom outputs a custom log message at the specified log level.
-// It includes the specified message and error and respects the custom log level names.
-func (d *Debugger) Custom(logLevel LogLevel, msg string, args ...interface{}) {
-	d.printLogCustom(logLevel, msg, args...)
-	d.printCustomLogToFile(logLevel, msg, args...)
-}
-
-// printLogCustom formats and prints the custom log message to the console.
-// It uses the custom log level names if provided, otherwise falls back to the default log level names.
-func (d *Debugger) printLogCustom(logLevel LogLevel, msg string, args ...interface{}) {
-	var logLevelName string
-	if d.customLogLevelNames != nil {
-		logLevelName = d.customLogLevelNames[logLevel]
-	} else {
-		logLevelName = logLevelNames[logLevel]
-	}
-	logMessage := d.formatLog(msg, args...)
-	fmt.Print(d.logFormatter.Format(
-		logMessage,
-		logLevelName,
-		d.moduleName,
-		d.submodules,
-		time.Now().Format(d.dateFormat),
-	))
-}
-
-// printCustomLogToFile writes the custom log message to the log file if logging to a file is enabled.
-// It uses the custom log level names if provided, otherwise falls back to the default log level names.
-func (d *Debugger) printCustomLogToFile(logLevel LogLevel, msg string, args ...interface{}) error {
-	if d.log.isToFile {
-		var logLevelName string
-		if d.customLogLevelNames != nil {
-			logLevelName = d.customLogLevelNames[logLevel]
-		} else {
-			logLevelName = logLevelNames[logLevel]
-		}
-		logMessage := d.formatLog(msg, args...)
-		toPrint := d.logFormatter.Format(logMessage, logLevelName, d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
-		return d.writeLog(toPrint)
-	}
-	return nil
-}
-
-// Debug outputs a log message at the Debug level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-func (d *Debugger) Debug(msg string, args ...interface{}) {
-	if d.debugMode {
-		d.printLog(DebugLevel, msg, args...)
-		d.printLogToFile(msg, args...)
-	}
-}
-
-// Trace outputs a log message at the Trace level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-// Trace logs are only printed if the debug mode is enabled, and the log level is set to Trace.
-func (d *Debugger) Trace(msg string, args ...interface{}) {
-	if d.debugMode && d.debugModeStatus == TraceLevel {
-		d.printLog(TraceLevel, msg, args...)
-		d.printLogToFile(msg, args...)
-	}
-}
-
-// Info outputs a log message at the Info level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-func (d *Debugger) Info(msg string, args ...interface{}) {
-	d.printLog(InfoLevel, msg, args...)
-	d.printLogToFile(msg, args...)
-}
-
-// Warning outputs a log message at the Warning level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-func (d *Debugger) Warning(msg string, args ...interface{}) {
-	d.printLog(WarningLevel, msg, args...)
-	d.printLogToFile(msg, args...)
-}
-
-// Error outputs a log message at the Error level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-func (d *Debugger) Error(msg string, args ...interface{}) {
-	d.printLog(ErrorLevel, msg, args...)
-	d.printLogToFile(msg, args...)
-}
-
-// Fatal outputs a log message at the Fatal level with the specified message and error (if any).
-// It prints the log message to the console and, if enabled, to the log file.
-func (d *Debugger) Fatal(msg string, args ...interface{}) {
-	d.printLog(FatalLevel, msg, args...)
-	d.printLogToFile(msg, args...)
-}
-
-// printLog prints the log message to the console with the specified log level.
-// It updates the log level of the debugger and formats the log message using the configured log formatter.
-func (d *Debugger) printLog(logLevel LogLevel, msg string, args ...interface{}) {
-	d.logLevel = logLevel
+// CustomTrace logs a message at the specified log level and handles error extraction.
+// It checks all log rules to determine if the message should be logged based on the rules' conditions.
+func (d *Debugger) CustomTrace(logLevel LogLevel, msg string, args ...interface{}) {
 	logMessage := fmt.Sprintf(msg, args...)
-	fmt.Print(d.logFormatter.Format(logMessage, logLevelNames[logLevel], d.moduleName, d.submodules, time.Now().Format(d.dateFormat)))
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, logLevel)
+
+		for _, v := range loggableRules {
+			if v.DebugMode && v.DebugModeStatus == TraceLevel {
+				v.CurrentLevel = logLevel
+
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				if v.AsyncLog.Enable {
+					v.logChannel <- finalMessage
+				} else {
+					v.print(finalMessage)
+				}
+			}
+		}
+	}
 }
 
-// printLogToFile writes the log message to the log file if logging to a file is enabled.
-// It uses the log formatter to format the log message before writing it to the file.
-func (d *Debugger) printLogToFile(msg string, args ...interface{}) error {
-	if d.log.isToFile {
-		logMessage := fmt.Sprintf(msg, args...)
-		toPrint := d.logFormatter.Format(logMessage, logLevelNames[d.logLevel], d.moduleName, d.submodules, time.Now().Format(d.dateFormat))
-		return d.writeLog(toPrint)
+// CustomDebug logs a message at the specified log level, similarly to CustomTrace.
+// It checks if the log should be output based on the rules defined in LogRules.
+func (d *Debugger) CustomDebug(logLevel LogLevel, msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, logLevel)
+
+		for _, v := range loggableRules {
+			if v.DebugMode {
+				v.CurrentLevel = logLevel
+
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				if v.AsyncLog.Enable {
+					v.logChannel <- finalMessage
+				} else {
+					v.print(finalMessage)
+				}
+			}
+		}
+	}
+}
+
+// Custom logs a message at a specified log level, checking the appropriate rules.
+// This method is more general and does not have specific conditions like debug mode.
+func (d *Debugger) Custom(logLevel LogLevel, msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, logLevel)
+
+		for _, v := range loggableRules {
+			v.CurrentLevel = logLevel
+
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			if v.AsyncLog.Enable {
+				v.logChannel <- finalMessage
+			} else {
+				v.print(finalMessage)
+			}
+		}
+	}
+}
+
+// Debug logs a message at the Debug level and checks if it should be output based on the defined rules.
+func (d *Debugger) Debug(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, DebugLevel)
+
+		for _, v := range loggableRules {
+			if v.DebugMode {
+				v.CurrentLevel = DebugLevel
+
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				if v.AsyncLog.Enable {
+					v.logChannel <- finalMessage
+				} else {
+					v.print(finalMessage)
+				}
+			}
+		}
+	}
+}
+
+// Trace logs a message at the Trace level, outputting it based on the console and file settings.
+func (d *Debugger) Trace(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, TraceLevel)
+
+		for _, v := range loggableRules {
+			if v.DebugMode && v.DebugModeStatus == TraceLevel {
+				v.CurrentLevel = TraceLevel
+
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				if v.AsyncLog.Enable {
+					v.logChannel <- finalMessage
+				} else {
+					v.print(finalMessage)
+				}
+			}
+		}
+	}
+}
+
+// Info logs a message at the Info level, similar to other log methods, checking for applicable rules.
+func (d *Debugger) Info(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, InfoLevel)
+
+		for _, v := range loggableRules {
+			v.CurrentLevel = InfoLevel
+
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+
+			if v.AsyncLog.Enable {
+				v.logChannel <- finalMessage
+			} else {
+				v.print(finalMessage)
+			}
+		}
+	}
+}
+
+// Warning logs a message at the Warning level, checking if it should be printed based on the rules.
+func (d *Debugger) Warning(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, WarningLevel)
+
+		for _, v := range loggableRules {
+			v.CurrentLevel = WarningLevel
+
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			if v.AsyncLog.Enable {
+				v.logChannel <- finalMessage
+			} else {
+				v.print(finalMessage)
+			}
+		}
+	}
+}
+
+// Error logs a message at the Error level, outputting it based on the defined logging rules.
+func (d *Debugger) Error(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, ErrorLevel)
+
+		for _, v := range loggableRules {
+			v.CurrentLevel = ErrorLevel
+
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			if v.AsyncLog.Enable {
+				v.logChannel <- finalMessage
+			} else {
+				v.print(finalMessage)
+			}
+		}
+	}
+}
+
+// Fatal logs a message at the Fatal level, handling output based on rules set in LogRules.
+func (d *Debugger) Fatal(msg string, args ...interface{}) {
+	logMessage := fmt.Sprintf(msg, args...)
+	err := d.extractError(args...)
+
+	for _, rules := range d.LogRules {
+		loggableRules := filterLoggableRules(rules, FatalLevel)
+
+		for _, v := range loggableRules {
+			v.CurrentLevel = FatalLevel
+
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			if v.AsyncLog.Enable {
+				v.logChannel <- finalMessage
+			} else {
+				v.print(finalMessage)
+			}
+		}
+	}
+}
+
+// print outputs the final log message to the console and to the log file if enabled.
+func (lr *LogRule) print(finalMessage string) {
+	if lr.IsConsoleOutput {
+		fmt.Println(finalMessage)
+	}
+
+	if lr.FileLog.Enable {
+		if err := lr.writeLog(finalMessage + "\n"); err != nil {
+			fmt.Println("[mklog] Error while writing to log file ", lr.ModuleName, " : ", err)
+		}
+	}
+}
+
+// extractError checks the arguments for any errors and returns the first found error.
+func (d *Debugger) extractError(args ...interface{}) error {
+	if len(args) > 0 {
+		for _, v := range args {
+			if e, ok := v.(error); ok {
+				return e
+			}
+		}
 	}
 	return nil
 }
 
-// formatLog creates a formatted log message combining the specified message and error (if any).
-func (d *Debugger) formatLog(format string, args ...interface{}) string {
-	return fmt.Sprintf(format, args...)
-}
+// prepareMessage formats the log message with relevant details including timestamp and log level.
+func (lr *LogRule) prepareMessage(logMessage string, logLevel LogLevel, optionalArgs ...interface{}) string {
+	logLevelName := lr.GetLogLevelName(logLevel)
+	finalMessage := lr.LogFormatter.Format(logMessage, logLevelName, lr.ModuleName, lr.Submodules, time.Now().Format(lr.DateFormat))
 
-// DebugDetailed outputs a detailed log message at the Debug level.
-// It includes the specified message and error with additional stack trace information.
-// DebugDetailed logs are printed to the console and, if enabled, to the log file.
-func (d *Debugger) DebugDetailed(msg string, err error) {
-	if d.debugMode {
-		d.printLog(DebugLevel, msg, NewDetailedError(err))
-		d.printLogToFile(msg, NewDetailedError(err))
+	for _, arg := range optionalArgs {
+		if detailedErr, ok := arg.(DetailedError); ok {
+			finalMessage += detailedErr.ErrorStack()
+			break
+		}
 	}
+	return finalMessage
 }
 
-// TraceDetailed outputs a detailed log message at the Trace level.
-// It includes the specified message and error with additional stack trace information.
-// TraceDetailed logs are only printed if the debug mode is enabled, and the log level is set to Trace.
-func (d *Debugger) TraceDetailed(msg string, err error) {
-	if d.debugMode && d.logLevel == TraceLevel {
-		d.printLog(TraceLevel, msg, NewDetailedError(err))
-		d.printLogToFile(msg, NewDetailedError(err))
+// filterLoggableRules filters the log rules to find those that are applicable based on the log level.
+func filterLoggableRules(rules []*LogRule, level LogLevel) []*LogRule {
+	var loggableRules []*LogRule
+	for _, rule := range rules {
+		if rule.shouldLog(level) {
+			loggableRules = append(loggableRules, rule)
+		}
 	}
+	return loggableRules
 }
 
-// InfoDetailed outputs a detailed log message at the Info level.
-// It includes the specified message and error with additional stack trace information.
-// InfoDetailed logs are printed to the console and, if enabled, to the log file.
-func (d *Debugger) InfoDetailed(msg string, err error) {
-	d.printLog(InfoLevel, msg, NewDetailedError(err))
-	d.printLogToFile(msg, NewDetailedError(err))
-}
-
-// WarningDetailed outputs a detailed log message at the Warning level.
-// It includes the specified message and error with additional stack trace information.
-// WarningDetailed logs are printed to the console and, if enabled, to the log file.
-func (d *Debugger) WarningDetailed(msg string, err error) {
-	d.printLog(WarningLevel, msg, NewDetailedError(err))
-	d.printLogToFile(msg, NewDetailedError(err))
-}
-
-// ErrorDetailed outputs a detailed log message at the Error level.
-// It includes the specified message and error with additional stack trace information.
-// ErrorDetailed logs are printed to the console and, if enabled, to the log file.
-func (d *Debugger) ErrorDetailed(msg string, err error) {
-	d.printLog(ErrorLevel, msg, NewDetailedError(err))
-	d.printLogToFile(msg, NewDetailedError(err))
-}
-
-// FatalDetailed outputs a detailed log message at the Fatal level.
-// It includes the specified message and error with additional stack trace information.
-// FatalDetailed logs are printed to the console and, if enabled, to the log file.
-func (d *Debugger) FatalDetailed(msg string, err error) {
-	d.printLog(FatalLevel, msg, NewDetailedError(err))
-	d.printLogToFile(msg, NewDetailedError(err))
+// shouldLog determines if the log level falls within the rule's specified min and max levels.
+func (lr *LogRule) shouldLog(logLevel LogLevel) bool {
+	return lr.MinLevel <= logLevel && logLevel <= lr.MaxLevel
 }

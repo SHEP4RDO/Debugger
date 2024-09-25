@@ -21,7 +21,7 @@ type PlainTextFormatter struct {
 // Format formats the log message in plain text.
 func (f PlainTextFormatter) Format(logMessage string, logLevel string, moduleName string, submodules []string, timestamp string) string {
 	if len(submodules) > 0 {
-		return fmt.Sprintf("%s | %s | [%s] - %v: %s\n",
+		return fmt.Sprintf("%s | %s | [%s] - %v: %s",
 			timestamp,
 			logLevel,
 			moduleName,
@@ -29,7 +29,7 @@ func (f PlainTextFormatter) Format(logMessage string, logLevel string, moduleNam
 			logMessage,
 		)
 	} else {
-		return fmt.Sprintf("%s | %s | [%s] : %s\n",
+		return fmt.Sprintf("%s | %s | [%s] : %s",
 			timestamp,
 			logLevel,
 			moduleName,
