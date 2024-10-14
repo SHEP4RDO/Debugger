@@ -27,14 +27,14 @@ func (y *YAMLConfigParser) ParseConfig(data []byte, config *Config) error {
 	return yaml.Unmarshal(data, config)
 }
 
-type LogConfigManager struct {
-	parsers               map[string]ConfigParser
-	userDefinedFormatters map[string]UserDefinedFormatterFunc
-}
-
 type LogFormatterConfig struct {
 	Type       string `yaml:"type" json:"type"`
 	DateFormat string `yaml:"date_format" json:"date_format"`
+}
+
+type LogConfigManager struct {
+	parsers               map[string]ConfigParser
+	userDefinedFormatters map[string]UserDefinedFormatterFunc
 }
 
 type AsyncLogConf struct {
@@ -124,24 +124,9 @@ func (m *LogConfigManager) LoadConfig(filePath string) (*Debugger, error) {
 	for ruleName, rules := range config.LogRules {
 		for _, rule := range rules {
 
-			formatterType := strings.ToLower(rule.LogFormatterType.Type)
-			var formatter LogFormatter
-
-			switch formatterType {
-			case "plaintextformatter", "plaintext", "plain", "text", "simple":
-				formatter = PlainTextFormatter{dateFormat: rule.DateFormat}
-			case "jsonformatter", "json":
-				formatter = JSONFormatter{dateFormat: rule.DateFormat}
-			case "yamlformatter", "yaml", "yml":
-				formatter = YAMLFormatter{dateFormat: rule.DateFormat}
-			case "xmlformatter", "xml":
-				formatter = XMLFormatter{dateFormat: rule.DateFormat}
-			default:
-				if formatFunc, exists := m.userDefinedFormatters[formatterType]; exists {
-					formatter = UserDefinedFormatter{formatFunc: formatFunc}
-				} else {
-					return nil, fmt.Errorf("[mklog] unsupported log formatter type: %s", rule.LogFormatterType)
-				}
+			formatter, err := rule.getFormatter(m.userDefinedFormatters)
+			if err != nil {
+				return nil, fmt.Errorf("[mklog] failed to get formatter: %w", err)
 			}
 
 			if rule.AsyncLog.Enable && rule.AsyncLog.BufferSize <= 0 {
@@ -270,4 +255,32 @@ func (rule *LogRulesConf) checkFolderSettings() error {
 
 func fileNameWithoutExt(fileName string) string {
 	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+}
+
+func (rule *LogRulesConf) getFormatter(userDefinedFormatters map[string]UserDefinedFormatterFunc) (LogFormatter, error) {
+	formatterType := strings.ToLower(rule.LogFormatterType.Type)
+	var formatter LogFormatter
+
+	switch formatterType {
+	case "plaintextformatter", "plaintext", "plain", "text", "simple":
+		formatter = PlainTextFormatter{dateFormat: rule.DateFormat}
+		return formatter, nil
+	case "jsonformatter", "json":
+		formatter = JSONFormatter{dateFormat: rule.DateFormat}
+		return formatter, nil
+	case "yamlformatter", "yaml", "yml":
+		formatter = YAMLFormatter{dateFormat: rule.DateFormat}
+		return formatter, nil
+	case "xmlformatter", "xml":
+		formatter = XMLFormatter{dateFormat: rule.DateFormat}
+		return formatter, nil
+	default:
+		if formatFunc, exists := userDefinedFormatters[formatterType]; exists {
+			formatter = UserDefinedFormatter{formatFunc: formatFunc}
+		} else {
+			return nil, fmt.Errorf("[mklog] unsupported log formatter type: %s", rule.LogFormatterType)
+		}
+	}
+
+	return nil, fmt.Errorf("unsupported log formatter type: %s", rule.LogFormatterType)
 }
