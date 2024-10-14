@@ -18,7 +18,7 @@ func (d *Debugger) CustomTrace(logLevel LogLevel, msg string, args ...interface{
 			if v.DebugMode && v.DebugModeStatus == TraceLevel {
 				v.CurrentLevel = logLevel
 
-				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 				if v.AsyncLog.Enable {
 					v.logChannel <- finalMessage
 				} else {
@@ -42,7 +42,7 @@ func (d *Debugger) CustomDebug(logLevel LogLevel, msg string, args ...interface{
 			if v.DebugMode {
 				v.CurrentLevel = logLevel
 
-				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 				if v.AsyncLog.Enable {
 					v.logChannel <- finalMessage
 				} else {
@@ -65,7 +65,7 @@ func (d *Debugger) Custom(logLevel LogLevel, msg string, args ...interface{}) {
 		for _, v := range loggableRules {
 			v.CurrentLevel = logLevel
 
-			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 			if v.AsyncLog.Enable {
 				v.logChannel <- finalMessage
 			} else {
@@ -87,7 +87,7 @@ func (d *Debugger) Debug(msg string, args ...interface{}) {
 			if v.DebugMode {
 				v.CurrentLevel = DebugLevel
 
-				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 				if v.AsyncLog.Enable {
 					v.logChannel <- finalMessage
 				} else {
@@ -110,7 +110,7 @@ func (d *Debugger) Trace(msg string, args ...interface{}) {
 			if v.DebugMode && v.DebugModeStatus == TraceLevel {
 				v.CurrentLevel = TraceLevel
 
-				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+				finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 				if v.AsyncLog.Enable {
 					v.logChannel <- finalMessage
 				} else {
@@ -132,7 +132,7 @@ func (d *Debugger) Info(msg string, args ...interface{}) {
 		for _, v := range loggableRules {
 			v.CurrentLevel = InfoLevel
 
-			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 
 			if v.AsyncLog.Enable {
 				v.logChannel <- finalMessage
@@ -154,7 +154,7 @@ func (d *Debugger) Warning(msg string, args ...interface{}) {
 		for _, v := range loggableRules {
 			v.CurrentLevel = WarningLevel
 
-			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 			if v.AsyncLog.Enable {
 				v.logChannel <- finalMessage
 			} else {
@@ -175,7 +175,7 @@ func (d *Debugger) Error(msg string, args ...interface{}) {
 		for _, v := range loggableRules {
 			v.CurrentLevel = ErrorLevel
 
-			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 			if v.AsyncLog.Enable {
 				v.logChannel <- finalMessage
 			} else {
@@ -196,7 +196,7 @@ func (d *Debugger) Fatal(msg string, args ...interface{}) {
 		for _, v := range loggableRules {
 			v.CurrentLevel = FatalLevel
 
-			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, err)
+			finalMessage := v.prepareMessage(logMessage, v.CurrentLevel, v.DetailedErrorOutput, err)
 			if v.AsyncLog.Enable {
 				v.logChannel <- finalMessage
 			} else {
@@ -232,13 +232,17 @@ func (d *Debugger) extractError(args ...interface{}) error {
 }
 
 // prepareMessage formats the log message with relevant details including timestamp and log level.
-func (lr *LogRule) prepareMessage(logMessage string, logLevel LogLevel, optionalArgs ...interface{}) string {
+func (lr *LogRule) prepareMessage(logMessage string, logLevel LogLevel, isDetailed bool, optionalArgs ...interface{}) string {
 	logLevelName := lr.GetLogLevelName(logLevel)
 	finalMessage := lr.LogFormatter.Format(logMessage, logLevelName, lr.ModuleName, lr.Submodules, time.Now().Format(lr.DateFormat))
 
 	for _, arg := range optionalArgs {
 		if detailedErr, ok := arg.(DetailedError); ok {
-			finalMessage += detailedErr.ErrorStack()
+			if isDetailed {
+				finalMessage += detailedErr.ErrorStack()
+			} else {
+				finalMessage += detailedErr.Error()
+			}
 			break
 		}
 	}
